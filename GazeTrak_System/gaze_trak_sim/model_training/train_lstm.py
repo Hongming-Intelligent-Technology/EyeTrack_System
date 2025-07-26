@@ -1,49 +1,44 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
-from model import GazeResNet
+from model_lstm import GazeLSTMNet
 
-def train_model(
+def train_lstm(
     train_path='dataset/train.npy',
     label_path='dataset/label.npy',
-    model_save_path='dataset/model.pth',
-    epochs=30, batch_size=32, lr=0.001
+    model_save_path='dataset/model_lstm.pth',
+    epochs=40,
+    batch_size=32,
+    lr=1e-3
 ):
-    # 1. 加载数据
-    x = np.load(train_path)   # [N, 16, 26, 60]
+    x = np.load(train_path)   # [N, C, T, W]
     y = np.load(label_path)   # [N, 2]
-
     x_tensor = torch.tensor(x, dtype=torch.float32)
     y_tensor = torch.tensor(y, dtype=torch.float32)
 
     dataset = TensorDataset(x_tensor, y_tensor)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    # 2. 初始化模型
-    model = GazeResNet()
-    model.train()
-
+    model = GazeLSTMNet(input_channels=x.shape[1], width=x.shape[3])
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    # 3. 训练循环
+    model.train()
     for epoch in range(epochs):
-        epoch_loss = 0
+        total_loss = 0
         for batch_x, batch_y in loader:
-            optimizer.zero_grad()
             pred = model(batch_x)
             loss = criterion(pred, batch_y)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            epoch_loss += loss.item()
+            total_loss += loss.item()
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss:.4f}")
 
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.4f}")
-
-    # 4. 保存模型
     torch.save(model.state_dict(), model_save_path)
-    print(f"✅ 模型已保存至 {model_save_path}")
+    print(f"Model saved to {model_save_path}")
 
 if __name__ == '__main__':
-    train_model()
+    train_lstm()
