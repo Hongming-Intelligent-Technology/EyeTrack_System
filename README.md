@@ -1,4 +1,4 @@
-# FurrySuit Eye Tracking with YOLOv11
+# FurrySuit Eye Tracking
 
 ## Features
 - **Real-time eye movement tracking**: Utilize a camera to capture eye images in real-time and accurately track the position of the pupil.
